@@ -66,16 +66,16 @@ static void checkblock(void *bp);
 int mm_init(void) 
 {
     /* Create the initial empty heap */
-    if ((heap_listp = mem_sbrk(4*WSIZE)) == (void *)-1) //line:vm:mm:begininit
+    if ((heap_listp = mem_sbrk(4*WSIZE)) == (void *)-1) //line:vm:mm:begininit  heap_listp=4010
         return -1;
     PUT(heap_listp, 0);                          /* Alignment padding */
-    char * first_hp=heap_listp + (1*WSIZE);
+    char * first_hp=heap_listp + (1*WSIZE);  //first_hp= 4014
     PUT(first_hp, PACK(DSIZE, 1)); /* Prologue header */ 
-    char * first_fp = heap_listp + (2*WSIZE);
+    char * first_fp = heap_listp + (2*WSIZE); // first_fp=4018
     PUT(first_fp, PACK(DSIZE, 1)); /* Prologue footer */ 
-    char * laset_p = heap_listp + (3*WSIZE);
+    char * laset_p = heap_listp + (3*WSIZE); // laset_p=401c
     PUT(laset_p, PACK(0, 1));     /* Epilogue header */
-    heap_listp += (2*WSIZE);                     //line:vm:mm:endinit  
+    heap_listp += (2*WSIZE);                     //line:vm:mm:endinit   heap_listp= 4018
     /* $end mminit */
 
 #ifdef NEXT_FIT
@@ -160,9 +160,9 @@ void mm_free(void *bp)
 /* $begin mmfree */
 static void *coalesce(void *bp) 
 {
-    size_t prev_alloc = GET_ALLOC(FTRP(PREV_BLKP(bp)));
-    size_t next_alloc = GET_ALLOC(HDRP(NEXT_BLKP(bp)));
-    size_t size = GET_SIZE(HDRP(bp));
+    size_t prev_alloc = GET_ALLOC(FTRP(PREV_BLKP(bp)));//bp=4020
+    size_t next_alloc = GET_ALLOC(HDRP(NEXT_BLKP(bp)));//bp=4020
+    size_t size = GET_SIZE(HDRP(bp));//bp size = 4096
 
     if (prev_alloc && next_alloc) {            /* Case 1 */
         return bp;
@@ -259,14 +259,18 @@ static void *extend_heap(size_t words)
     size_t size;
 
     /* Allocate an even number of words to maintain alignment */
-    size = (words % 2) ? (words+1) * WSIZE : words * WSIZE; //line:vm:mm:beginextend
-    if ((long)(bp = mem_sbrk(size)) == -1)  
+    size = (words % 2) ? (words+1) * WSIZE : words * WSIZE; //line:vm:mm:beginextend //size = 4096
+    if ((long)(bp = mem_sbrk(size)) == -1)  //bp=4020(16)+4096(10)=5020(16)
         return NULL;                                        //line:vm:mm:endextend
 
     /* Initialize free block header/footer and the epilogue header */
-    PUT(HDRP(bp), PACK(size, 0));         /* Free block header */   //line:vm:mm:freeblockhdr
-    PUT(FTRP(bp), PACK(size, 0));         /* Free block footer */   //line:vm:mm:freeblockftr
-    PUT(HDRP(NEXT_BLKP(bp)), PACK(0, 1)); /* New epilogue header */ //line:vm:mm:newepihdr
+    char* hp = HDRP(bp); //hp=401c
+    PUT(hp, PACK(size, 0));         /* Free block header */   //line:vm:mm:freeblockhdr
+    char* fp = FTRP(bp);//fp=5018
+    PUT(fp, PACK(size, 0));         /* Free block footer */   //line:vm:mm:freeblockftr
+    char * np = NEXT_BLKP(bp); //np =5020
+    char * nphp=HDRP(np); //nphp = 501c
+    PUT(nphp, PACK(0, 1)); /* New epilogue header */ //line:vm:mm:newepihdr
 
     /* Coalesce if the previous block was free */
     return coalesce(bp);                                          //line:vm:mm:returnblock

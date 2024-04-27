@@ -41,14 +41,14 @@ void mem_init(void)
  */
 void *mem_sbrk(int incr) 
 {
-    char *old_brk = mem_brk; //4010
+    char *old_brk = mem_brk; //init old_brk=4010 ,extend_heap old_brk=4020
 
     if ( (incr < 0) || ((mem_brk + incr) > mem_max_addr)) {
 	errno = ENOMEM;
 	fprintf(stderr, "ERROR: mem_sbrk failed. Ran out of memory...\n");
 	return (void *)-1;
     }
-    mem_brk += incr;
+    mem_brk += incr; //mem_brk=4020，,extend_heap mem_brk=5020
     return (void *)old_brk;
 }
 /* $end memlib */
