@@ -109,7 +109,7 @@ void *mm_malloc(size_t size)
     if (size == 0)
         return NULL;
 
-    /* Adjust block size to include overhead and alignment reqs. */
+    /* Adjust block size to include overhead and alignment reqs.加上头和尾一共8byte之后8字节对齐 */
     if (size <= DSIZE)                                          //line:vm:mm:sizeadjust1
         asize = 2*DSIZE;                                        //line:vm:mm:sizeadjust2
     else
@@ -164,23 +164,24 @@ static void *coalesce(void *bp)
     size_t next_alloc = GET_ALLOC(HDRP(NEXT_BLKP(bp)));//bp=4020
     size_t size = GET_SIZE(HDRP(bp));//bp size = 4096
 
+    //前后都分配 不合并
     if (prev_alloc && next_alloc) {            /* Case 1 */
         return bp;
     }
-
+    //前分配 后free 合并后面
     else if (prev_alloc && !next_alloc) {      /* Case 2 */
         size += GET_SIZE(HDRP(NEXT_BLKP(bp)));
         PUT(HDRP(bp), PACK(size, 0));
         PUT(FTRP(bp), PACK(size,0));
     }
-
+    //前free 后分配 合并前面
     else if (!prev_alloc && next_alloc) {      /* Case 3 */
         size += GET_SIZE(HDRP(PREV_BLKP(bp)));
         PUT(FTRP(bp), PACK(size, 0));
         PUT(HDRP(PREV_BLKP(bp)), PACK(size, 0));
         bp = PREV_BLKP(bp);
     }
-
+        //前free 后freee 全合并
     else {                                     /* Case 4 */
         size += GET_SIZE(HDRP(PREV_BLKP(bp))) + 
             GET_SIZE(FTRP(NEXT_BLKP(bp)));
@@ -287,22 +288,26 @@ static void place(void *bp, size_t asize)
 /* $end mmplace-proto */
 {
     char *hp = HDRP(bp);
-    size_t csize = GET_SIZE(hp);   
+    size_t csize = GET_SIZE(hp); //当前大的free容量  
 
+    //大的freeblock需要拆分的两部分
     if ((csize - asize) >= (2*DSIZE)) { 
         int pack1 = PACK(asize, 1);
-        PUT(HDRP(bp), pack1);
+        PUT(HDRP(bp), pack1);//新已分配头，aszie=需要的 1 表示已分配
         int pack2 = PACK(asize, 1);
         char * fp = FTRP(bp);
-        PUT(fp, pack2);
-        bp = NEXT_BLKP(bp);
+        PUT(fp, pack2);//新已分配foot，aszie=需要的 1 表示已分配
+        bp = NEXT_BLKP(bp);  //下一块
 
-        int pk3 = PACK(csize-asize, 0);
+        int pk3 = PACK(csize-asize, 0); //下一块头
         PUT(HDRP(bp), pk3);
         int pk4 = PACK(csize-asize, 0);
-        PUT(FTRP(bp), PACK(csize-asize, 0));
+        PUT(FTRP(bp), PACK(csize-asize, 0));//下一块尾
     }
     else { 
+        //freeblock还剩下不足构成一个block(head+foot+body) 那么等于全用完
+        //例如free = head(4)+body(8)+foot(4) malloc(7)
+        // 8 -7 =1还剩 1 byte没法处理,那么就冗余在里面，没法分割出来
         PUT(HDRP(bp), PACK(csize, 1));
         PUT(FTRP(bp), PACK(csize, 1));
     }
