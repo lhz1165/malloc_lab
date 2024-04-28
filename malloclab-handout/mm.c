@@ -35,7 +35,7 @@ team_t team = {
     ""
 };
 
-#define NEXT_FITx
+#define NEXT_FIT
 
 /* $begin mallocmacros */
 /* Basic constants and macros */

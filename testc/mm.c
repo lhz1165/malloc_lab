@@ -14,7 +14,7 @@
 /*
  * If NEXT_FIT defined use next fit search, else use first-fit search 
  */
-#define NEXT_FITx
+#define NEXT_FIT
 
 /* $begin mallocmacros */
 /* Basic constants and macros */
@@ -302,7 +302,8 @@ static void place(void *bp, size_t asize)
         int pk3 = PACK(csize-asize, 0); //下一块头
         PUT(HDRP(bp), pk3);
         int pk4 = PACK(csize-asize, 0);
-        PUT(FTRP(bp), PACK(csize-asize, 0));//下一块尾
+        char * sfp = FTRP(bp);
+        PUT(sfp, PACK(csize-asize, 0));//下一块尾
     }
     else { 
         //freeblock还剩下不足构成一个block(head+foot+body) 那么等于全用完
